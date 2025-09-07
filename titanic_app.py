@@ -20,7 +20,7 @@ def load_file_from_github(url, file_type="csv"):
 # URLs for your files on GitHub
 # -----------------------------
 # Replace these URLs with the "raw" GitHub links for your files
-TRAIN_CSV_URL = "https://raw.githubusercontent.com/imanasghar-ia/titanic-app/main/train.csv"
+TRAIN_CSV_URL = "https://raw.githubusercontent.com/imanasghar-ia/titanic-app/refs/heads/main/titanic_app.py"
 MODEL_PKL_URL = "https://raw.githubusercontent.com/imanasghar-ia/titanic-app/main/titanic_model.pkl"
 
 # -----------------------------
