@@ -1,69 +1,59 @@
 import streamlit as st
 import pandas as pd
 import joblib
-import requests
-from io import BytesIO
 
+# -------------------------------
+# 1. Load Dataset & Model Locally
+# -------------------------------
+@st.cache_data
+def load_data():
+    return pd.read_csv("train.csv")   # Local dataset in repo
+
+@st.cache_resource
+def load_model():
+    return joblib.load("titanic_model.pkl")   # Local model in repo
+
+df = load_data()
+model = load_model()
+# -------------------------------
+# 2. Streamlit App UI
+# -------------------------------
+st.set_page_config(page_title="🚢 Titanic Survival Prediction", layout="wide")
 st.title("🚢 Titanic Survival Prediction App")
 
-# -----------------------------
-# Function to download files from GitHub
-# -----------------------------
-def load_file_from_github(url, file_type="csv"):
-    if file_type == "csv":
-        return pd.read_csv(url)
-    elif file_type == "pkl":
-        response = requests.get(url)
-        return joblib.load(BytesIO(response.content))
+st.write("This app predicts whether a passenger survived or not based on input features.")
 
-# -----------------------------
-# URLs for your files on GitHub
-# -----------------------------
-# Replace these URLs with the "raw" GitHub links for your files
-TRAIN_CSV_URL = "https://raw.githubusercontent.com/imanasghar-ia/titanic-app/refs/heads/main/titanic_app.py"
-MODEL_PKL_URL = "https://raw.githubusercontent.com/imanasghar-ia/titanic-app/main/titanic_model.pkl"
-
-# -----------------------------
-# Load dataset
-# -----------------------------
-st.subheader("Dataset Preview")
-df = load_file_from_github(TRAIN_CSV_URL)
-st.dataframe(df.head())
-
-# -----------------------------
-# Load model
-# -----------------------------
-model = load_file_from_github(MODEL_PKL_URL, file_type="pkl")
-
-# -----------------------------
-# User input for prediction
-# -----------------------------
-st.subheader("Predict Survival")
-pclass = st.selectbox("Passenger Class", [1, 2, 3])
+# -------------------------------
+# 3. User Input
+# -------------------------------
+pclass = st.selectbox("Passenger Class (1 = 1st, 2 = 2nd, 3 = 3rd)", [1, 2, 3])
 sex = st.selectbox("Sex", ["male", "female"])
-age = st.number_input("Age", min_value=0, max_value=100, value=30)
-sibsp = st.number_input("Siblings/Spouses aboard", min_value=0, max_value=10, value=0)
-parch = st.number_input("Parents/Children aboard", min_value=0, max_value=10, value=0)
-fare = st.number_input("Fare", min_value=0.0, max_value=600.0, value=32.0)
+age = st.slider("Age", 0, 80, 25)
+sibsp = st.number_input("Number of Siblings/Spouses Aboard", 0, 8, 0)
+parch = st.number_input("Number of Parents/Children Aboard", 0, 6, 0)
+fare = st.slider("Passenger Fare", 0, 500, 50)
+embarked = st.selectbox("Port of Embarkation", ["C", "Q", "S"])
 
-# Convert user input into DataFrame
-input_df = pd.DataFrame({
-    "Pclass": [pclass],
-    "Sex": [sex],
-    "Age": [age],
-    "SibSp": [sibsp],
-    "Parch": [parch],
-    "Fare": [fare]
-})
+# -------------------------------
+# 4. Feature Engineering
+# -------------------------------
+# Match training preprocessing (you must adapt if your model used encodings/scalers)
+sex_val = 1 if sex == "male" else 0
+embarked_dict = {"C": 0, "Q": 1, "S": 2}
+embarked_val = embarked_dict[embarked]
 
-# -----------------------------
-# Encode categorical columns (if your model needs it)
-# -----------------------------
-input_df["Sex"] = input_df["Sex"].map({"male": 0, "female": 1})
+features = [[pclass, sex_val, age, sibsp, parch, fare, embarked_val]]
 
-# -----------------------------
-# Make prediction
-# -----------------------------
-prediction = model.predict(input_df)[0]
+# -------------------------------
+# 5. Prediction
+# -------------------------------
+if st.button("Predict Survival"):
+    prediction = model.predict(features)
+    result = "✅ Survived" if prediction[0] == 1 else "❌ Did Not Survive"
+    st.subheader(f"Prediction: {result}")
 
-st.write("✅ Prediction:", "Survived" if prediction == 1 else "Did not survive")
+# -------------------------------
+# 6. Show Data
+# -------------------------------
+with st.expander("See Titanic Training Data"):
+    st.dataframe(df.head())
